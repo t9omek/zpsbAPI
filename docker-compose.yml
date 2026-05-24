@@ -1,0 +1,10 @@
+version: '1.0'
+services:
+  db-techpart:
+    image: postgres:15-alpine
+    container_name: serverAPI_db
+    environment:
+      - POSTGRES_PASSWORD=P@ssw0rd123
+      - POSTGRES_DB=apiDB
+    ports:
+      - "5432:5432"
