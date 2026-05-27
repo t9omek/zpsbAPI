@@ -2,8 +2,9 @@ from fastapi import FastAPI, Header, HTTPException, Depends
 
 # Do db ###################
 from db_connection import get_db
-from tables import Pracownik, Status,Dostawa,FirmaDostawcza
+from tables import Pracownik, Status,Dostawa,FirmaDostawcza, FormaDostawy, Zamowienia, FormaPlatnosci, PozycjaZamowienia, Produkt, Magazyn, Klient, Adres, ProduktMagazyn
 from sqlalchemy.orm import Session
+from sqlalchemy import decimal
 from pydantic import BaseModel
 ###########################
 
@@ -206,13 +207,12 @@ def edit_firmaDostawcza(id: int, firmaDostawcza:FirmaDostawcza_Change, db: Sessi
     firmaDostawcza_db=db.query(FirmaDostawcza).filter(FirmaDostawcza.id_firmy == id).first()
     if firmaDostawcza_db is None:
         raise HTTPException(status_code=404, detail="Brak firmy dostawczej o takim id")
-    firmaDostawcza_db.imie=firmaDostawcza.imie
-    firmaDostawcza_db.nazwisko=firmaDostawcza.nazwisko
+    firmaDostawcza_db.nazwa=firmaDostawcza.nazwa
     db.commit()
     return firmaDostawcza_db
     
     
-    class FormaDostawy_Change(BaseModel):
+class FormaDostawy_Change(BaseModel):
     nazwa: str
     
 
@@ -250,7 +250,399 @@ def edit_formaDostawy(id: int, formaDostawy:FormaDostawy_Change, db: Session = D
     formaDostawy_db=db.query(FormaDostawy).filter(FormaDostawy.id_formy_dostawy == id).first()
     if formaDostawy_db is None:
         raise HTTPException(status_code=404, detail="Brak formy dostawy o takim id")
-    formaDostawy_db.imie=formaDostawy.imie
-    formaDostawy_db.nazwisko=formaDostawy.nazwisko
+    formaDostawy_db.nazwa=formaDostawy.nazwa
     db.commit()
     return formaDostawy_db
+
+#     Lewa strona API    #
+##########################
+
+class Zamowienie_Change(BaseModel):
+    id_statusu: int
+    id_pracownika: int
+    id_klienta: int
+    id_formy_platnosci: int
+    id_dostawy: int
+    
+
+@app.get("/zamowienia", dependencies=[Depends(check_api_key)])
+def get_zamowienia(db: Session = Depends(get_db)):
+    return db.query(Zamowienia).all()
+
+
+@app.get("/zamowienie/{id}", dependencies=[Depends(check_api_key)])
+def get_zamowienie(id: int, db: Session = Depends(get_db)):
+    zam = db.query(Zamowienia).filter(Zamowienia.id_zamowienia == id).first()
+    if zam is None:
+        raise HTTPException(status_code=404, detail="Brak zamówienia o takim id")
+    return zam
+
+
+@app.post("/zamowienie", status_code=201, dependencies=[Depends(check_api_key)])
+def add_zamowienie(zam: Zamowienie_Change, db: Session = Depends(get_db)):
+    zam_db = Zamowienia(**zam.dict())
+    db.add(zam_db)
+    db.commit()
+    db.refresh(zam_db)
+    return zam_db
+
+
+@app.put("/zamowienie/{id}", dependencies=[Depends(check_api_key)])
+def edit_zamowienie(id: int, zam: Zamowienie_Change, db: Session = Depends(get_db)):
+    zam_db = db.query(Zamowienia).filter(Zamowienia.id_zamowienia == id).first()
+    if zam_db is None:
+        raise HTTPException(status_code=404, detail="Brak zamówienia o takim id")
+    for k, v in zam.dict().items():
+        setattr(zam_db, k, v)
+    db.commit()
+    return zam_db
+
+
+@app.delete("/zamowienie/{id}", dependencies=[Depends(check_api_key)])
+def delete_zamowienie(id: int, db: Session = Depends(get_db)):
+    zam = db.query(Zamowienia).filter(Zamowienia.id_zamowienia == id).first()
+    if zam is None:
+        raise HTTPException(status_code=404, detail="Brak zamówienia o takim id")
+    db.delete(zam)
+    db.commit()
+    return {"message": f"Usunięto zamówienie {id}"}
+
+
+class FormaPlatnosci_Change(BaseModel):
+    nazwa: str
+
+
+@app.get("/formy_platnosci", dependencies=[Depends(check_api_key)])
+def get_formy(db: Session = Depends(get_db)):
+    return db.query(FormaPlatnosci).all()
+
+
+@app.get("/formy_platnosci/{id}", dependencies=[Depends(check_api_key)])
+def get_forma(id: int, db: Session = Depends(get_db)):
+    f = db.query(FormaPlatnosci).filter(FormaPlatnosci.id_formy_platnosci == id).first()
+    if f is None:
+        raise HTTPException(status_code=404, detail="Brak formy płatności o takim id")
+    return f
+
+
+@app.post("/formy_platnosci", status_code=201, dependencies=[Depends(check_api_key)])
+def add_forma(forma: FormaPlatnosci_Change, db: Session = Depends(get_db)):
+    f = FormaPlatnosci(**forma.dict())
+    db.add(f)
+    db.commit()
+    db.refresh(f)
+    return f
+
+
+@app.put("/formy_platnosci/{id}", dependencies=[Depends(check_api_key)])
+def edit_forma(id: int, forma: FormaPlatnosci_Change, db: Session = Depends(get_db)):
+    f = db.query(FormaPlatnosci).filter(FormaPlatnosci.id_formy_platnosci == id).first()
+    if f is None:
+        raise HTTPException(status_code=404, detail="Brak formy płatności o takim id")
+    f.nazwa = forma.nazwa
+    db.commit()
+    return f
+
+
+@app.delete("/formy_platnosci/{id}", dependencies=[Depends(check_api_key)])
+def delete_forma(id: int, db: Session = Depends(get_db)):
+    f = db.query(FormaPlatnosci).filter(FormaPlatnosci.id_formy_platnosci == id).first()
+    if f is None:
+        raise HTTPException(status_code=404, detail="Brak formy płatności o takim id")
+    db.delete(f)
+    db.commit()
+    return {"message": f"Usunięto formę płatności {id}"}
+
+
+class PozycjaZamowienia_Change(BaseModel):
+    id_zamowienia: int
+    id_produktu: int
+    ilosc: int
+    cena: decimal
+
+
+@app.get("/pozycje_zamowienia", dependencies=[Depends(check_api_key)])
+def get_pozycje(db: Session = Depends(get_db)):
+    return db.query(PozycjaZamowienia).all()
+
+
+@app.get("/pozycje_zamowienia/{id}", dependencies=[Depends(check_api_key)])
+def get_pozycja(id: int, db: Session = Depends(get_db)):
+    p = db.query(PozycjaZamowienia).filter(PozycjaZamowienia.id_pozycji == id).first()
+    if p is None:
+        raise HTTPException(status_code=404, detail="Brak pozycji o takim id")
+    return p
+
+
+@app.post("/pozycje_zamowienia", status_code=201, dependencies=[Depends(check_api_key)])
+def add_pozycja(poz: PozycjaZamowienia_Change, db: Session = Depends(get_db)):
+    p = PozycjaZamowienia(**poz.dict())
+    db.add(p)
+    db.commit()
+    db.refresh(p)
+    return p
+
+
+@app.put("/pozycje_zamowienia/{id}", dependencies=[Depends(check_api_key)])
+def edit_pozycja(id: int, poz: PozycjaZamowienia_Change, db: Session = Depends(get_db)):
+    p = db.query(PozycjaZamowienia).filter(PozycjaZamowienia.id_pozycji == id).first()
+    if p is None:
+        raise HTTPException(status_code=404, detail="Brak pozycji o takim id")
+    for k, v in poz.dict().items():
+        setattr(p, k, v)
+    db.commit()
+    return p
+
+
+@app.delete("/pozycje_zamowienia/{id}", dependencies=[Depends(check_api_key)])
+def delete_pozycja(id: int, db: Session = Depends(get_db)):
+    p = db.query(PozycjaZamowienia).filter(PozycjaZamowienia.id_pozycji == id).first()
+    if p is None:
+        raise HTTPException(status_code=404, detail="Brak pozycji o takim id")
+    db.delete(p)
+    db.commit()
+    return {"message": f"Usunięto pozycję {id}"}
+
+
+
+class Produkt_Change(BaseModel):
+    nazwa: str
+    cena: decimal
+
+
+@app.get("/produkty", dependencies=[Depends(check_api_key)])
+def get_produkty(db: Session = Depends(get_db)):
+    return db.query(Produkt).all()
+
+
+@app.get("/produkty/{id}", dependencies=[Depends(check_api_key)])
+def get_produkt(id: int, db: Session = Depends(get_db)):
+    p = db.query(Produkt).filter(Produkt.id_produktu == id).first()
+    if p is None:
+        raise HTTPException(status_code=404, detail="Brak produktu o takim id")
+    return p
+
+
+@app.post("/produkty", status_code=201, dependencies=[Depends(check_api_key)])
+def add_produkt(prod: Produkt_Change, db: Session = Depends(get_db)):
+    p = Produkt(**prod.dict())
+    db.add(p)
+    db.commit()
+    db.refresh(p)
+    return p
+
+
+@app.put("/produkty/{id}", dependencies=[Depends(check_api_key)])
+def edit_produkt(id: int, prod: Produkt_Change, db: Session = Depends(get_db)):
+    p = db.query(Produkt).filter(Produkt.id_produktu == id).first()
+    if p is None:
+        raise HTTPException(status_code=404, detail="Brak produktu o takim id")
+    p.nazwa = prod.nazwa
+    p.cena = prod.cena
+    db.commit()
+    return p
+
+
+@app.delete("/produkty/{id}", dependencies=[Depends(check_api_key)])
+def delete_produkt(id: int, db: Session = Depends(get_db)):
+    p = db.query(Produkt).filter(Produkt.id_produktu == id).first()
+    if p is None:
+        raise HTTPException(status_code=404, detail="Brak produktu o takim id")
+    db.delete(p)
+    db.commit()
+    return {"message": f"Usunięto produkt {id}"}
+
+
+class ProduktMagazyn_Change(BaseModel):
+    id_produktu: int
+    id_magazynu: int
+    ilosc: int
+
+
+
+@app.get("/produktMagazyn", dependencies=[Depends(check_api_key)])
+def get_produktMagazyn(db: Session = Depends(get_db)):
+    return db.query(ProduktMagazyn).all()
+
+
+@app.get("/produktMagazyn/{id}", dependencies=[Depends(check_api_key)])
+def get_produktMagazyn(id: int, db: Session = Depends(get_db)):
+    m = db.query(ProduktMagazyn).filter(ProduktMagazyn.id_produktMagazyn == id).first()
+    if m is None:
+        raise HTTPException(status_code=404, detail="Brak Produkt Magazynu o takim id")
+    return m
+
+@app.post("/produktMagazyn", status_code=201, dependencies=[Depends(check_api_key)])
+def add_produktMagazyn(mag: ProduktMagazyn_Change, db: Session = Depends(get_db)):
+    m = ProduktMagazyn(**mag.dict())
+    db.add(m)
+    db.commit()
+    db.refresh(m)
+    return m
+
+@app.put("/produktMagazyn/{id}", dependencies=[Depends(check_api_key)])
+def edit_produktMagazyn(id: int, mag: ProduktMagazyn_Change, db: Session = Depends(get_db)):
+    m = db.query(ProduktMagazyn).filter(ProduktMagazyn.id_produktMagazyn == id).first()
+    if m is None:
+        raise HTTPException(status_code=404, detail="Brak Produkt Magazynu o takim id")
+    m.id_produktu = mag.id_produktu
+    m.id_magazynu = mag.id_magazynu
+    m.ilosc = mag.ilosc
+    db.commit()
+    return m
+
+@app.delete("/produktMagazyn/{id}", dependencies=[Depends(check_api_key)])
+def delete_produktMagazyn(id: int, db: Session = Depends(get_db)):
+    m = db.query(ProduktMagazyn).filter(ProduktMagazyn.id_produktMagazyn == id).first()
+    if m is None:
+        raise HTTPException(status_code=404, detail="Brak Produkt Magazynu o takim id")
+    db.delete(m)
+    db.commit()
+    return {"message": f"Usunięto Produkt Magazynu {id}"}
+
+
+class Magazyn_Change(BaseModel):
+    nazwa: str
+
+
+@app.get("/magazyny", dependencies=[Depends(check_api_key)])
+def get_magazyny(db: Session = Depends(get_db)):
+    return db.query(Magazyn).all()
+
+
+@app.get("/magazyny/{id}", dependencies=[Depends(check_api_key)])
+def get_magazyn(id: int, db: Session = Depends(get_db)):
+    m = db.query(Magazyn).filter(Magazyn.id_magazynu == id).first()
+    if m is None:
+        raise HTTPException(status_code=404, detail="Brak magazynu o takim id")
+    return m
+
+
+@app.post("/magazyny", status_code=201, dependencies=[Depends(check_api_key)])
+def add_magazyn(mag: Magazyn_Change, db: Session = Depends(get_db)):
+    m = Magazyn(**mag.dict())
+    db.add(m)
+    db.commit()
+    db.refresh(m)
+    return m
+
+
+@app.put("/magazyny/{id}", dependencies=[Depends(check_api_key)])
+def edit_magazyn(id: int, mag: Magazyn_Change, db: Session = Depends(get_db)):
+    m = db.query(Magazyn).filter(Magazyn.id_magazynu == id).first()
+    if m is None:
+        raise HTTPException(status_code=404, detail="Brak magazynu o takim id")
+    m.nazwa = mag.nazwa
+    db.commit()
+    return m
+
+
+@app.delete("/magazyny/{id}", dependencies=[Depends(check_api_key)])
+def delete_magazyn(id: int, db: Session = Depends(get_db)):
+    m = db.query(Magazyn).filter(Magazyn.id_magazynu == id).first()
+    if m is None:
+        raise HTTPException(status_code=404, detail="Brak magazynu o takim id")
+    db.delete(m)
+    db.commit()
+    return {"message": f"Usunięto magazyn {id}"}
+
+
+class Klient_Change(BaseModel):
+    imie: str | None
+    nazwisko: str | None
+    telefon: str | None
+    email: str | None
+
+
+@app.get("/klienci", dependencies=[Depends(check_api_key)])
+def get_klienci(db: Session = Depends(get_db)):
+    return db.query(Klient).all()
+
+
+@app.get("/klienci/{id}", dependencies=[Depends(check_api_key)])
+def get_klient(id: int, db: Session = Depends(get_db)):
+    k = db.query(Klient).filter(Klient.id_klienta == id).first()
+    if k is None:
+        raise HTTPException(status_code=404, detail="Brak klienta o takim id")
+    return k
+
+
+@app.post("/klienci", status_code=201, dependencies=[Depends(check_api_key)])
+def add_klient(kl: Klient_Change, db: Session = Depends(get_db)):
+    k = Klient(**kl.dict())
+    db.add(k)
+    db.commit()
+    db.refresh(k)
+    return k
+
+
+@app.put("/klienci/{id}", dependencies=[Depends(check_api_key)])
+def edit_klient(id: int, kl: Klient_Change, db: Session = Depends(get_db)):
+    k = db.query(Klient).filter(Klient.id_klienta == id).first()
+    if k is None:
+        raise HTTPException(status_code=404, detail="Brak klienta o takim id")
+    for key, value in kl.dict().items():
+        setattr(k, key, value)
+    db.commit()
+    return k
+
+
+@app.delete("/klienci/{id}", dependencies=[Depends(check_api_key)])
+def delete_klient(id: int, db: Session = Depends(get_db)):
+    k = db.query(Klient).filter(Klient.id_klienta == id).first()
+    if k is None:
+        raise HTTPException(status_code=404, detail="Brak klienta o takim id")
+    db.delete(k)
+    db.commit()
+    return {"message": f"Usunięto klienta {id}"}
+
+
+
+class Adres_Change(BaseModel):
+    id_klienta: int
+    miasto: str
+    ulica: str
+    kod_pocztowy: str
+
+
+@app.get("/adresy", dependencies=[Depends(check_api_key)])
+def get_adresy(db: Session = Depends(get_db)):
+    return db.query(Adres).all()
+
+
+@app.get("/adresy/{id}", dependencies=[Depends(check_api_key)])
+def get_adres(id: int, db: Session = Depends(get_db)):
+    a = db.query(Adres).filter(Adres.id_adresu == id).first()
+    if a is None:
+        raise HTTPException(status_code=404, detail="Brak adresu o takim id")
+    return a
+
+
+@app.post("/adresy", status_code=201, dependencies=[Depends(check_api_key)])
+def add_adres(ad: Adres_Change, db: Session = Depends(get_db)):
+    a = Adres(**ad.dict())
+    db.add(a)
+    db.commit()
+    db.refresh(a)
+    return a
+
+
+@app.put("/adresy/{id}", dependencies=[Depends(check_api_key)])
+def edit_adres(id: int, ad: Adres_Change, db: Session = Depends(get_db)):
+    a = db.query(Adres).filter(Adres.id_adresu == id).first()
+    if a is None:
+        raise HTTPException(status_code=404, detail="Brak adresu o takim id")
+    for k, v in ad.dict().items():
+        setattr(a, k, v)
+    db.commit()
+    return a
+
+
+@app.delete("/adresy/{id}", dependencies=[Depends(check_api_key)])
+def delete_adres(id: int, db: Session = Depends(get_db)):
+    a = db.query(Adres).filter(Adres.id_adresu == id).first()
+    if a is None:
+        raise HTTPException(status_code=404, detail="Brak adresu o takim id")
+    db.delete(a)
+    db.commit()
+    return {"message": f"Usunięto adres {id}"}
