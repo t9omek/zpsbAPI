@@ -1,39 +1,38 @@
 import os
+from datetime import date
+from decimal import Decimal
+
+from dotenv import load_dotenv, find_dotenv
 from fastapi import FastAPI, Header, HTTPException, Depends
 from pydantic import BaseModel, Field
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
-from dotenv import load_dotenv, find_dotenv
-from db_connection import get_db
 
+from db_connection import get_db
+from tables import (
+    Pracownik,
+    Status,
+    Dostawa,
+    FirmaDostawcza,
+    FormaDostawy,
+    FormaPlatnosci,
+    PozycjaZamowienia,
+    Produkt,
+    Magazyn,
+    Klient,
+    Adres,
+    ProduktMagazyn,
+    Zamowienie,
+)
 
 load_dotenv(find_dotenv())
 
-
 app = FastAPI(
     title="zpsbAPI",
     description="API do obsługi zamówień",
     version="1.0.0"
 )
-
-
-API_KEY = os.getenv("API_KEY")
-
-# Do db ###################
-from db_connection import get_db
-from tables import Pracownik, Status,Dostawa,FirmaDostawcza, FormaDostawy, Zamowienia, FormaPlatnosci, PozycjaZamowienia, Produkt, Magazyn, Klient, Adres, ProduktMagazyn
-from sqlalchemy.orm import Session
-from sqlalchemy import decimal
-from pydantic import BaseModel
-###########################
-
-app = FastAPI(
-    title="zpsbAPI",
-    description="API do obsługi zamówień",
-    version="1.0.0"
-)
-
 
 API_KEY = os.getenv("API_KEY")
 
@@ -280,14 +279,14 @@ class Zamowienie_Change(BaseModel):
     id_dostawy: int
     
 
-@app.get("/zamowienia", dependencies=[Depends(check_api_key)])
+@app.get("/zamowienie", dependencies=[Depends(check_api_key)])
 def get_zamowienia(db: Session = Depends(get_db)):
-    return db.query(Zamowienia).all()
+    return db.query(Zamowienie).all()
 
 
 @app.get("/zamowienie/{id}", dependencies=[Depends(check_api_key)])
 def get_zamowienie(id: int, db: Session = Depends(get_db)):
-    zam = db.query(Zamowienia).filter(Zamowienia.id_zamowienia == id).first()
+    zam = db.query(Zamowienie).filter(Zamowienie.id_zamowienia == id).first()
     if zam is None:
         raise HTTPException(status_code=404, detail="Brak zamówienia o takim id")
     return zam
@@ -295,7 +294,7 @@ def get_zamowienie(id: int, db: Session = Depends(get_db)):
 
 @app.post("/zamowienie", status_code=201, dependencies=[Depends(check_api_key)])
 def add_zamowienie(zam: Zamowienie_Change, db: Session = Depends(get_db)):
-    zam_db = Zamowienia(**zam.dict())
+    zam_db = Zamowienie(**zam.dict())
     db.add(zam_db)
     db.commit()
     db.refresh(zam_db)
@@ -304,7 +303,7 @@ def add_zamowienie(zam: Zamowienie_Change, db: Session = Depends(get_db)):
 
 @app.put("/zamowienie/{id}", dependencies=[Depends(check_api_key)])
 def edit_zamowienie(id: int, zam: Zamowienie_Change, db: Session = Depends(get_db)):
-    zam_db = db.query(Zamowienia).filter(Zamowienia.id_zamowienia == id).first()
+    zam_db = db.query(Zamowienie).filter(Zamowienie.id_zamowienia == id).first()
     if zam_db is None:
         raise HTTPException(status_code=404, detail="Brak zamówienia o takim id")
     for k, v in zam.dict().items():
@@ -315,7 +314,7 @@ def edit_zamowienie(id: int, zam: Zamowienie_Change, db: Session = Depends(get_d
 
 @app.delete("/zamowienie/{id}", dependencies=[Depends(check_api_key)])
 def delete_zamowienie(id: int, db: Session = Depends(get_db)):
-    zam = db.query(Zamowienia).filter(Zamowienia.id_zamowienia == id).first()
+    zam = db.query(Zamowienie).filter(Zamowienie.id_zamowienia == id).first()
     if zam is None:
         raise HTTPException(status_code=404, detail="Brak zamówienia o takim id")
     db.delete(zam)
@@ -373,7 +372,7 @@ class PozycjaZamowienia_Change(BaseModel):
     id_zamowienia: int
     id_produktu: int
     ilosc: int
-    cena_zakupu: decimal
+    cena_zakupu: Decimal
 
 
 @app.get("/pozycje_zamowienia", dependencies=[Depends(check_api_key)])
