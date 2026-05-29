@@ -1,10 +1,13 @@
-version: '1.0'
+version: '4'
+
 services:
   db-techpart:
     image: postgres:15-alpine
     container_name: serverAPI_db
     environment:
-      - POSTGRES_PASSWORD=P@ssw0rd123
-      - POSTGRES_DB=apiDB
+      POSTGRES_PASSWORD: P@ssw0rd123
+      POSTGRES_DB: apiDB
     ports:
       - "5432:5432"
+    volumes:
+      - ./baza.sql:/docker-entrypoint-initdb.d/baza.sql
