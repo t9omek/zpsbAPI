@@ -1,3 +1,4 @@
+import os
 from fastapi import FastAPI, Header, HTTPException, Depends
 
 # Do db ###################
@@ -8,13 +9,25 @@ from sqlalchemy import decimal
 from pydantic import BaseModel
 ###########################
 
-app = FastAPI()
+app = FastAPI(
+    title="zpsbAPI",
+    description="API do obsługi zamówień",
+    version="1.0.0"
+)
 
-API_KEY = "tajny-klucz-123"
+
+API_KEY = os.getenv("API_KEY")
+
+if not API_KEY:
+    raise RuntimeError("Brak wymaganej zmiennej środowiskowej: API_KEY")
+
 
 def check_api_key(x_api_key: str = Header(None)):
     if x_api_key != API_KEY:
-        raise HTTPException(status_code=401, detail="Brak lub błędny klucz API")
+        raise HTTPException(
+            status_code=401,
+            detail="Brak lub błędny klucz API"
+        )
 
 @app.get("/")
 def home():
