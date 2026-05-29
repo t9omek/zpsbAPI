@@ -358,7 +358,7 @@ class PozycjaZamowienia_Change(BaseModel):
     id_zamowienia: int
     id_produktu: int
     ilosc: int
-    cena: decimal
+    cena_zakupu: decimal
 
 
 @app.get("/pozycje_zamowienia", dependencies=[Depends(check_api_key)])
@@ -368,7 +368,7 @@ def get_pozycje(db: Session = Depends(get_db)):
 
 @app.get("/pozycje_zamowienia/{id}", dependencies=[Depends(check_api_key)])
 def get_pozycja(id: int, db: Session = Depends(get_db)):
-    p = db.query(PozycjaZamowienia).filter(PozycjaZamowienia.id_pozycji == id).first()
+    p = db.query(PozycjaZamowienia).filter(PozycjaZamowienia.id == id).first()
     if p is None:
         raise HTTPException(status_code=404, detail="Brak pozycji o takim id")
     return p
@@ -385,7 +385,7 @@ def add_pozycja(poz: PozycjaZamowienia_Change, db: Session = Depends(get_db)):
 
 @app.put("/pozycje_zamowienia/{id}", dependencies=[Depends(check_api_key)])
 def edit_pozycja(id: int, poz: PozycjaZamowienia_Change, db: Session = Depends(get_db)):
-    p = db.query(PozycjaZamowienia).filter(PozycjaZamowienia.id_pozycji == id).first()
+    p = db.query(PozycjaZamowienia).filter(PozycjaZamowienia.id == id).first()
     if p is None:
         raise HTTPException(status_code=404, detail="Brak pozycji o takim id")
     for k, v in poz.dict().items():
@@ -396,7 +396,7 @@ def edit_pozycja(id: int, poz: PozycjaZamowienia_Change, db: Session = Depends(g
 
 @app.delete("/pozycje_zamowienia/{id}", dependencies=[Depends(check_api_key)])
 def delete_pozycja(id: int, db: Session = Depends(get_db)):
-    p = db.query(PozycjaZamowienia).filter(PozycjaZamowienia.id_pozycji == id).first()
+    p = db.query(PozycjaZamowienia).filter(PozycjaZamowienia.id == id).first()
     if p is None:
         raise HTTPException(status_code=404, detail="Brak pozycji o takim id")
     db.delete(p)
@@ -467,7 +467,7 @@ def get_produktMagazyn(db: Session = Depends(get_db)):
 
 @app.get("/produktMagazyn/{id}", dependencies=[Depends(check_api_key)])
 def get_produktMagazyn(id: int, db: Session = Depends(get_db)):
-    m = db.query(ProduktMagazyn).filter(ProduktMagazyn.id_produktMagazyn == id).first()
+    m = db.query(ProduktMagazyn).filter(ProduktMagazyn.id == id).first()
     if m is None:
         raise HTTPException(status_code=404, detail="Brak Produkt Magazynu o takim id")
     return m
@@ -482,7 +482,7 @@ def add_produktMagazyn(mag: ProduktMagazyn_Change, db: Session = Depends(get_db)
 
 @app.put("/produktMagazyn/{id}", dependencies=[Depends(check_api_key)])
 def edit_produktMagazyn(id: int, mag: ProduktMagazyn_Change, db: Session = Depends(get_db)):
-    m = db.query(ProduktMagazyn).filter(ProduktMagazyn.id_produktMagazyn == id).first()
+    m = db.query(ProduktMagazyn).filter(ProduktMagazyn.id == id).first()
     if m is None:
         raise HTTPException(status_code=404, detail="Brak Produkt Magazynu o takim id")
     m.id_produktu = mag.id_produktu
@@ -493,7 +493,7 @@ def edit_produktMagazyn(id: int, mag: ProduktMagazyn_Change, db: Session = Depen
 
 @app.delete("/produktMagazyn/{id}", dependencies=[Depends(check_api_key)])
 def delete_produktMagazyn(id: int, db: Session = Depends(get_db)):
-    m = db.query(ProduktMagazyn).filter(ProduktMagazyn.id_produktMagazyn == id).first()
+    m = db.query(ProduktMagazyn).filter(ProduktMagazyn.id == id).first()
     if m is None:
         raise HTTPException(status_code=404, detail="Brak Produkt Magazynu o takim id")
     db.delete(m)

@@ -33,7 +33,7 @@ class FormaDostawy(Base):
 class Zamowienia(Base):
     __tablename__ = "Zamowienia"
     id_zamowienia = Column(Integer, primary_key=True, nullable=False)
-    data_zamowienia = Column(TIMESTAMP, nullable=False, server_default=text('CURRENT_TIMESTAMP'))
+    data = Column(TIMESTAMP, nullable=False, server_default=text('CURRENT_TIMESTAMP'))
     id_statusu = Column(Integer, nullable=False)
     id_pracownika = Column(Integer, nullable=False)
     id_klienta = Column(Integer, nullable=False)
@@ -47,11 +47,11 @@ class FormaPlatnosci(Base):
 
 class PozycjaZamowienia(Base):
     __tablename__ = "PozycjaZamowienia"
-    id_pozycji = Column(Integer, primary_key=True, nullable=False)
+    id = Column(Integer, primary_key=True, nullable=False)
     id_zamowienia = Column(Integer, nullable=False)
     id_produktu = Column(Integer, nullable=False)
     ilosc = Column(Integer, nullable=False)
-    cena = Column(Decimal(10, 2), nullable=False)
+    cena_zakupu = Column(Decimal(10, 2), nullable=False)
 
 class Produkt(Base):
     __tablename__ = "Produkt"
@@ -61,7 +61,7 @@ class Produkt(Base):
 
 class ProduktMagazyn(Base):
     __tablename__ = "ProduktMagazyn"
-    id_produktMagazyn = Column(Integer, primary_key=True, nullable=False)
+    id = Column(Integer, primary_key=True, nullable=False)
     id_produktu = Column(Integer,nullable=False)
     id_magazynu = Column(Integer, nullable=False)
     ilosc = Column(Integer, nullable=False)
@@ -74,10 +74,10 @@ class Magazyn(Base):
 class Klient(Base):
     __tablename__ = "Klient"
     id_klienta = Column(Integer, primary_key=True, nullable=False)
-    imie = Column(String, nullable=True)
-    telefon = Column(String, nullable=True)
-    nazwisko = Column(String, nullable=True)
-    email = Column(String, nullable=True)
+    imie = Column(String, nullable=False)
+    nazwisko = Column(String, nullable=False)
+    telefon = Column(String, nullable=False)
+    email = Column(String, nullable=False)
 
 class Adres(Base):
     __tablename__ = "Adres"
